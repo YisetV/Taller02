@@ -1,209 +1,176 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Juego del Ahorcado</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#000000">
+  <link rel="icon" href="juego-del-ahorcado.png" type="image/png">
+
   <style>
     body {
       font-family: Arial, sans-serif;
-      background-color: #f4f4f4;
       text-align: center;
-      padding: 20px;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 0;
     }
-
-    .container {
-      background: white;
-      padding: 20px;
-      max-width: 500px;
-      margin: auto;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    h1 {
+      margin-top: 20px;
     }
-
-    #canvas {
-      background-color: #fff;
-      border: 1px solid #ccc;
-      margin-bottom: 20px;
+    #word {
+      font-size: 2rem;
+      letter-spacing: 10px;
+      margin: 20px;
     }
-
-    #wordDisplay {
-      font-size: 24px;
-      letter-spacing: 8px;
-      margin: 20px 0;
-    }
-
     #keyboard button {
-      margin: 5px;
+      margin: 3px;
       padding: 10px 15px;
-      font-size: 16px;
+      font-size: 1rem;
       cursor: pointer;
     }
-
-    #keyboard button:disabled {
-      background-color: #ddd;
-      cursor: not-allowed;
-    }
-
-    #message {
-      font-size: 20px;
-      font-weight: bold;
-      margin-top: 15px;
-    }
-
-    button#resetBtn {
-      margin-top: 15px;
+    #reset {
+      margin-top: 20px;
       padding: 10px 20px;
-      font-size: 16px;
+      font-size: 1rem;
       cursor: pointer;
+    }
+    canvas {
+      margin-top: 20px;
+      background-color: white;
+      border: 1px solid #000;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Juego del Ahorcado</h1>
-    <canvas id="canvas" width="200" height="250"></canvas>
-    <p id="wordDisplay"></p>
-    <div id="keyboard"></div>
-    <p id="message"></p>
-    <button id="resetBtn" onclick="resetGame()">Reiniciar</button>
-  </div>
+  <h1>Juego del Ahorcado</h1>
+  <canvas id="hangman" width="200" height="200"></canvas>
+  <div id="word"></div>
+  <div id="keyboard"></div>
+  <button id="reset">Reiniciar Juego</button>
 
   <script>
-    const palabras = ["javascript", "ahorcado", "programacion", "web", "desarrollo"];
+    const palabras = ["PROGRAMAR", "AHORCADO", "JAVASCRIPT", "COLOMBIA", "COMPUTADORA"];
     let palabraSecreta = "";
-    let letrasAdivinadas = [];
+    let palabraGuiones = [];
     let errores = 0;
-    const maxErrores = 6;
 
-    const wordDisplay = document.getElementById("wordDisplay");
-    const message = document.getElementById("message");
-    const canvas = document.getElementById("canvas");
+    const canvas = document.getElementById("hangman");
     const ctx = canvas.getContext("2d");
 
     function iniciarJuego() {
       palabraSecreta = palabras[Math.floor(Math.random() * palabras.length)];
-      letrasAdivinadas = [];
+      palabraGuiones = Array(palabraSecreta.length).fill("_");
       errores = 0;
-      actualizarPalabra();
-      message.textContent = "";
-      dibujarAhorcado(errores);
-      crearTeclado();
+      document.getElementById("word").textContent = palabraGuiones.join(" ");
+      dibujar();
+      generarTeclado();
     }
 
-    function actualizarPalabra() {
-      let display = palabraSecreta
-        .split("")
-        .map(letra => (letrasAdivinadas.includes(letra) ? letra : "_"))
-        .join(" ");
-      wordDisplay.textContent = display;
-
-      if (!display.includes("_")) {
-        message.textContent = "¡Ganaste!";
-        desactivarTeclado();
-      }
-    }
-
-    function crearTeclado() {
-      const keyboard = document.getElementById("keyboard");
-      keyboard.innerHTML = "";
-
-      for (let i = 97; i <= 122; i++) {
+    function generarTeclado() {
+      const tecladoDiv = document.getElementById("keyboard");
+      tecladoDiv.innerHTML = "";
+      for (let i = 65; i <= 90; i++) {
         const letra = String.fromCharCode(i);
         const btn = document.createElement("button");
         btn.textContent = letra;
-        btn.onclick = () => manejarIntento(letra, btn);
-        keyboard.appendChild(btn);
+        btn.onclick = () => adivinarLetra(letra, btn);
+        tecladoDiv.appendChild(btn);
       }
     }
 
-    function manejarIntento(letra, boton) {
-      boton.disabled = true;
-
+    function adivinarLetra(letra, btn) {
+      btn.disabled = true;
       if (palabraSecreta.includes(letra)) {
-        letrasAdivinadas.push(letra);
-        actualizarPalabra();
+        for (let i = 0; i < palabraSecreta.length; i++) {
+          if (palabraSecreta[i] === letra) {
+            palabraGuiones[i] = letra;
+          }
+        }
+        document.getElementById("word").textContent = palabraGuiones.join(" ");
+        if (!palabraGuiones.includes("_")) {
+          alert("¡Ganaste! 🎉");
+          bloquearTeclado();
+        }
       } else {
         errores++;
-        dibujarAhorcado(errores);
-
-        if (errores >= maxErrores) {
-          message.textContent = `¡Perdiste! La palabra era "${palabraSecreta}"`;
-          desactivarTeclado();
+        dibujar();
+        if (errores === 6) {
+          alert("Perdiste 😢. La palabra era: " + palabraSecreta);
+          bloquearTeclado();
         }
       }
     }
 
-    function desactivarTeclado() {
+    function bloquearTeclado() {
       const botones = document.querySelectorAll("#keyboard button");
-      botones.forEach(b => b.disabled = true);
+      botones.forEach((b) => b.disabled = true);
     }
 
-    function resetGame() {
+    function dibujar() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      iniciarJuego();
-    }
-
-    function dibujarAhorcado(error) {
       ctx.lineWidth = 2;
       ctx.strokeStyle = "#000";
-
       // Base
-      if (error > 0) {
+      ctx.beginPath();
+      ctx.moveTo(10, 190);
+      ctx.lineTo(190, 190);
+      ctx.moveTo(50, 190);
+      ctx.lineTo(50, 20);
+      ctx.lineTo(120, 20);
+      ctx.lineTo(120, 40);
+      ctx.stroke();
+
+      if (errores > 0) { // Cabeza
         ctx.beginPath();
-        ctx.moveTo(10, 240);
-        ctx.lineTo(190, 240);
+        ctx.arc(120, 55, 15, 0, Math.PI * 2);
         ctx.stroke();
       }
-
-      // Poste
-      if (error > 1) {
+      if (errores > 1) { // Cuerpo
         ctx.beginPath();
-        ctx.moveTo(50, 240);
-        ctx.lineTo(50, 20);
-        ctx.lineTo(150, 20);
-        ctx.lineTo(150, 40);
-        ctx.stroke();
-      }
-
-      // Cabeza
-      if (error > 2) {
-        ctx.beginPath();
-        ctx.arc(150, 60, 20, 0, Math.PI * 2);
-        ctx.stroke();
-      }
-
-      // Cuerpo
-      if (error > 3) {
-        ctx.beginPath();
-        ctx.moveTo(150, 80);
-        ctx.lineTo(150, 140);
-        ctx.stroke();
-      }
-
-      // Brazos
-      if (error > 4) {
-        ctx.beginPath();
-        ctx.moveTo(150, 100);
+        ctx.moveTo(120, 70);
         ctx.lineTo(120, 120);
-        ctx.moveTo(150, 100);
-        ctx.lineTo(180, 120);
         ctx.stroke();
       }
-
-      // Piernas
-      if (error > 5) {
+      if (errores > 2) { // Brazo izq
         ctx.beginPath();
-        ctx.moveTo(150, 140);
-        ctx.lineTo(120, 180);
-        ctx.moveTo(150, 140);
-        ctx.lineTo(180, 180);
+        ctx.moveTo(120, 80);
+        ctx.lineTo(90, 100);
+        ctx.stroke();
+      }
+      if (errores > 3) { // Brazo der
+        ctx.beginPath();
+        ctx.moveTo(120, 80);
+        ctx.lineTo(150, 100);
+        ctx.stroke();
+      }
+      if (errores > 4) { // Pierna izq
+        ctx.beginPath();
+        ctx.moveTo(120, 120);
+        ctx.lineTo(90, 150);
+        ctx.stroke();
+      }
+      if (errores > 5) { // Pierna der
+        ctx.beginPath();
+        ctx.moveTo(120, 120);
+        ctx.lineTo(150, 150);
         ctx.stroke();
       }
     }
 
-    // Iniciar juego al cargar
-    window.onload = iniciarJuego;
+    document.getElementById("reset").addEventListener("click", iniciarJuego);
+    iniciarJuego();
+
+    // Registrar service worker
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("service-worker.js")
+        .then(() => console.log("Service Worker registrado"))
+        .catch(err => console.error("Error al registrar Service Worker:", err));
+    }
   </script>
 </body>
 </html>
+
