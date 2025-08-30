@@ -3,12 +3,10 @@ const FILES_TO_CACHE = [
   "/",
   "/index.html",
   "/manifest.json",
-  "/app.js", // si separas la lógica en este archivo
-  "/icons/icon-192x192.png",
-  "/icons/icon-512x512.png"
+  "/juego-del-ahorcado.png"
 ];
 
-// Instalación del SW y guardado de caché
+// Instalación del SW y guardado en caché
 self.addEventListener("install", (event) => {
   console.log("[ServiceWorker] Instalando...");
   event.waitUntil(
@@ -20,7 +18,7 @@ self.addEventListener("install", (event) => {
   self.skipWaiting();
 });
 
-// Activación del SW (limpiar versiones viejas de caché)
+// Activación del SW (eliminar versiones antiguas)
 self.addEventListener("activate", (event) => {
   console.log("[ServiceWorker] Activado");
   event.waitUntil(
@@ -42,7 +40,6 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   event.respondWith(
     caches.match(event.request).then((response) => {
-      // Si existe en caché, devuelve; si no, ve a la red
       return response || fetch(event.request);
     })
   );
